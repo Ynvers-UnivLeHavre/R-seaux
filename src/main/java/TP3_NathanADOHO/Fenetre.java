@@ -1,4 +1,4 @@
-package TPHamming;
+package TP3_NathanADOHO;
 
 import java.awt.BorderLayout;
 import java.awt.Container;
