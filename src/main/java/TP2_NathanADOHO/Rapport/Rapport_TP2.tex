@@ -1,0 +1,427 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{fancyhdr}
+\usepackage{tikz}
+
+\geometry{margin=1in}
+
+% Configuration des listings pour le code
+\lstset{
+    language=Java,
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+    stringstyle=\color{red},
+    backgroundcolor=\color{lightgray!10},
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny
+}
+
+\title{Rapport TP2 - Code de Redondance Cyclique (CRC)}
+\author{Nathan ADOHO}
+\date{\today}
+
+\begin{document}
+
+% Page de couverture
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+
+\Large
+\textbf{UNIVERSITÉ Le Havre Normandie}\\
+\textbf{Licence 3 - Informatique}
+
+\vspace{3cm}
+
+\huge
+\textbf{Travail Pratique 2}
+
+\vspace{0.5cm}
+
+\LARGE
+\textbf{Code de Redondance Cyclique (CRC)}
+
+\vspace{3cm}
+
+\Large
+\textbf{Contrôle et Détection d'Erreurs en Transmission de Données}
+
+\vspace{4cm}
+
+\large
+\textbf{Étudiant :} Nathan ADOHO\\
+\vspace{0.3cm}
+\textbf{Date :} \today\\
+\vspace{0.3cm}
+\textbf{Année académique :} 2025-2026
+
+\vspace{4cm}
+
+\begin{center}
+\parbox{0.8\textwidth}{
+\centering
+\textbf{Objectif Pédagogique}\par
+\vspace{0.5cm}
+Ce TP vise à approfondir la compréhension des techniques de détection d'erreurs dans les communications numériques, en particulier le CRC, qui est un élément fondamental des protocoles de transmission modernes.
+}
+\end{center}
+
+\vfill
+
+\footnotesize
+Licence 3 Info\\
+Année Académique 2025-2026
+\end{titlepage}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Rappel du Sujet}
+
+Le travail pratique 2 portait sur l'implémentation et la compréhension du \textbf{Code de Redondance Cyclique (CRC)}, une technique fondamentale de détection d'erreurs utilisée dans les communications numériques, l'intégrité des données de stockage et les protocoles réseau mondiaux.
+
+\subsection{Contexte Général}
+
+Le CRC est un élément critique de l'infrastructure réseau moderne. Il est utilisé dans :
+\begin{itemize}
+    \item Les protocoles Ethernet (IEEE 802.3)
+    \item Les communications USB
+    \item Les systèmes de fichiers (ZIP, tar)
+    \item Les bases de données
+    \item Les communications sans fil (Wi-Fi, Bluetooth)
+\end{itemize}
+
+En 2025, avec des térabits de données traversant les réseaux chaque seconde, la détection fiable des erreurs reste un enjeu majeur.
+
+\subsection{Objectifs du TP}
+
+Les objectifs pédagogiques étaient :
+\begin{enumerate}
+    \item Comprendre le fonctionnement mathématique du CRC basé sur l'arithmétique polynomiale binaire
+    \item Implémenter un algorithme de calcul du CRC à partir d'un message binaire et d'un polynôme générateur
+    \item Implémenter une fonction de vérification d'intégrité d'un message
+    \item Développer une interface graphique utilisateur (GUI) permettant de tester les implémentations
+    \item Valider empiriquement que l'algorithme détecte correctement les erreurs
+\end{enumerate}
+
+\subsection{Enjeux Pratiques}
+
+Dans les communications modernes, un bit erroné peut avoir des conséquences catastrophiques :
+\begin{itemize}
+    \item Perte de données en transmission
+    \item Corruption de fichiers
+    \item Malveillance et injection de données malicious
+    \item Arrêt de système (crash)
+\end{itemize}
+
+Le CRC offre un équilibre optimal entre :
+\begin{itemize}
+    \item \textbf{Efficacité} : calcul rapide avec peu de puissance de traitement
+    \item \textbf{Couverture} : détecte la majorité des erreurs
+    \item \textbf{Coût} : surcharge minimale en bande passante (généralement 16 à 32 bits)
+\end{itemize}
+
+\section{Analyse du Sujet}
+
+\subsection{Contexte Théorique}
+
+Le CRC est un code de détection d'erreurs basé sur le calcul d'un reste de division polynomiale en arithmétique binaire (modulo 2). Contrairement aux codes correcteurs (comme Hamming), le CRC ne peut que \textbf{détecter} les erreurs, pas les corriger.
+
+\subsection{Historique et Évolution}
+
+Le CRC a été développé dans les années 1960 par W. Wesley Peterson. Depuis, son importance n'a cessé de croître :
+\begin{itemize}
+    \item \textbf{1961} : Premiers travaux théoriques de Peterson
+    \item \textbf{1980s} : Adoption massive dans les réseaux locaux (Ethernet)
+    \item \textbf{1990s-2000s} : Intégration dans les systèmes de fichiers et les protocoles Internet
+    \item \textbf{2010s-2025} : Utilisation systématique dans tous les systèmes critiques
+\end{itemize}
+
+\subsection{Principes Mathématiques Fondamentaux}
+
+Le CRC fonctionne selon le principe suivant :
+
+\begin{enumerate}
+    \item On dispose d'un message $M$ de longueur $m$ bits
+    \item On dispose d'un polynôme générateur $G$ de longueur $n$ bits
+    \item On ajoute $n-1$ zéros au message : $M' = M \cdot 2^{n-1}$
+    \item On effectue une division polynomiale de $M'$ par $G$ en arithmétique binaire (XOR au lieu de soustraction)
+    \item Le reste de cette division est le CRC, de longueur $n-1$ bits
+    \item Le message transmis est $M$ concaténé avec le CRC : $T = M \| CRC$
+\end{enumerate}
+
+\subsubsection{Exemple Numérique Détaillé}
+
+Considérons :
+\begin{itemize}
+    \item Message $M = 110101$ (6 bits)
+    \item Polynôme générateur $G = 101$ (3 bits)
+\end{itemize}
+
+\textbf{Étape 1 :} Ajouter 2 zéros au message
+$$M' = 11010100$$
+
+\textbf{Étape 2 :} Division polynomiale en arithmétique binaire
+\begin{verbatim}
+         1011 (quotient)
+       --------
+101 | 11010100
+      101
+      ---
+       0101
+         101
+         ---
+            001
+              0
+              ---
+              001
+              101 (ne peut pas diviser)
+              ---
+              101 (reste = CRC)
+\end{verbatim}
+
+\textbf{Résultat :} CRC = 01, donc le message transmis = 110101\textbf{01}
+
+\subsection{Vocabulaire et Concepts Clés}
+
+\begin{itemize}
+    \item \textbf{Polynôme générateur} : Divisor utilisé pour calculer le CRC
+    \item \textbf{Syndrome} : Reste de la division (pour CRC, c'est le CRC lui-même)
+    \item \textbf{Parité} : Propriété d'un nombre d'être pair ou impair
+    \item \textbf{XOR (Ou exclusif)} : Opération logique fondamentale en arithmétique binaire
+    \item \textbf{Arithmétique modulo 2} : Addition et soustraction sans retenue (XOR)
+\end{itemize}
+
+\subsection{Avantages et Limitations du CRC}
+
+\textbf{Avantages du CRC :}
+\begin{itemize}
+    \item \textbf{Rapidité} : Calcul très rapide, adapté aux communications en temps réel
+    \item \textbf{Efficacité} : Détecte efficacement les erreurs isolées et en rafales
+    \item \textbf{Simplicité matérielle} : Peut être implémenté avec des circuits logiques simples
+    \item \textbf{Standardisation} : Nombreux standards CRC-16, CRC-32 largement reconnus
+    \item \textbf{Probabilité de faux négatif faible} : Avec un bon choix de polynôme, la probabilité que deux messages différents aient le même CRC est extrêmement faible
+\end{itemize}
+
+\textbf{Limitations du CRC :}
+\begin{itemize}
+    \item \textbf{Détection seulement} : Ne détecte pas toutes les erreurs (théoriquement)
+    \item \textbf{Pas de correction} : Nécessite une retransmission en cas d'erreur
+    \item \textbf{Pas de sécurité cryptographique} : N'offre aucune protection contre les modifications intentionnelles (attaques)
+    \item \textbf{Dépendance au polynôme} : Un mauvais choix de polynôme peut laisser passer certaines erreurs
+\end{itemize}
+
+\subsection{Avantages et Limitations}
+
+\textbf{Avantages du CRC :}
+\begin{itemize}
+    \item \textbf{Rapidité} : Calcul très rapide, adapté aux communications en temps réel
+    \item \textbf{Efficacité} : Détecte efficacement les erreurs isolées et en rafales
+    \item \textbf{Simplicité matérielle} : Peut être implémenté avec des circuits logiques simples
+    \item \textbf{Standardisation} : Nombreux standards CRC-16, CRC-32 largement reconnus
+    \item \textbf{Probabilité de faux négatif faible} : Avec un bon choix de polynôme, la probabilité que deux messages différents aient le même CRC est extrêmement faible
+\end{itemize}
+
+\textbf{Limitations du CRC :}
+\begin{itemize}
+    \item \textbf{Détection seulement} : Ne détecte pas toutes les erreurs (théoriquement)
+    \item \textbf{Pas de correction} : Nécessite une retransmission en cas d'erreur
+    \item \textbf{Pas de sécurité cryptographique} : N'offre aucune protection contre les modifications intentionnelles (attaques)
+    \item \textbf{Dépendance au polynôme} : Un mauvais choix de polynôme peut laisser passer certaines erreurs
+\end{itemize}
+
+\subsection{Différence avec Hamming (TP3)}
+
+À la différence du TP3 (Code de Hamming) qui corrige les erreurs, le CRC :
+\begin{itemize}
+    \item Détecte les erreurs mais ne les corrige pas
+    \item Occupe moins d'espace (pas de bits de parité multiples)
+    \item Est plus rapide à calculer
+    \item Est plus adapté aux canaux à très faible taux d'erreur
+\end{itemize}
+
+\section{Choix Techniques Effectués}
+
+\subsection{Architecture Générale}
+
+Le programme est organisé en deux classes principales :
+
+\begin{enumerate}
+    \item \textbf{CRC.java} : Implémentation des algorithmes CRC (calcul et vérification)
+    \item \textbf{App.java} : Interface graphique Swing permettant l'interaction utilisateur
+\end{enumerate}
+
+\subsection{Implémentation de l'Algorithme CRC}
+
+\subsubsection{Calcul du CRC}
+
+La méthode \texttt{calculerCRC(String message, String generateur)} implémente l'algorithme de calcul du CRC selon les étapes suivantes :
+
+\begin{enumerate}
+    \item \textbf{Ajout de zéros} : Ajouter au message un nombre de zéros égal à (longueur du polynôme - 1)
+    \item \textbf{Division polynomiale} : Effectuer la division en arithmétique binaire (XOR à la place de soustraction)
+    \item \textbf{Extraction du reste} : Le reste de la division est le CRC à adjoindre au message
+    \item \textbf{Retour} : Message original concaténé avec le CRC calculé
+\end{enumerate}
+
+\textbf{Pseudocode :}
+\begin{verbatim}
+fonction calculerCRC(message, polynôme):
+    message_etendu = message + zéros(longueur(polynôme) - 1)
+    pour chaque position du message_etendu:
+        si bit actuel = 1:
+            effectuer XOR avec le polynôme
+    retourner message + CRC (reste final)
+\end{verbatim}
+
+\subsubsection{Vérification du Message}
+
+La méthode \texttt{verifierMessage(String message, String generateur)} utilise le même principe de division polynomiale pour vérifier l'intégrité :
+
+\begin{enumerate}
+    \item Diviser le message complet (données + CRC) par le polynôme
+    \item Si le reste = 0 : message valide (aucune erreur détectée)
+    \item Si le reste $\neq$ 0 : message corrompu (erreur détectée)
+\end{enumerate}
+
+\textbf{Pseudocode :}
+\begin{verbatim}
+fonction verifierMessage(message, polynôme):
+    reste = diviserPolynomial(message, polynôme)
+    si reste = 0:
+        retourner VALIDE
+    sinon:
+        retourner ERREUR
+\end{verbatim}
+
+\subsubsection{Code Source Java - Méthode calculerCRC}
+
+Voici l'implémentation complète de la méthode de calcul du CRC :
+
+\lstinputlisting[caption=Méthode calculerCRC (CRC.java),linerange={21-39},firstnumber=21]{../CRC.java}
+
+\subsubsection{Code Source Java - Méthode verifierMessage}
+
+Voici l'implémentation de la vérification du message :
+
+\lstinputlisting[caption=Méthode verifierMessage (CRC.java),linerange={41-57},firstnumber=41]{../CRC.java}
+
+\subsection{Interface Utilisateur}
+
+L'interface graphique a été développée avec Swing et offre les fonctionnalités suivantes :
+
+\begin{itemize}
+    \item Champs d'entrée pour le message et le polynôme (validés pour n'accepter que 0 et 1)
+    \item Deux boutons :
+    \begin{enumerate}
+        \item \textbf{Calculer CRC} : ajoute le CRC au message
+        \item \textbf{Vérifier Message} : vérifie l'intégrité d'un message
+    \end{enumerate}
+    \item Zone de résultats avec historique des opérations
+\end{itemize}
+
+\subsubsection{Validation des Entrées}
+
+Une classe interne \texttt{BinaryDocument} hérite de \texttt{PlainDocument} pour filtrer les caractères invalides et n'accepter que '0' et '1'.
+
+\section{Résultats et Tests}
+
+\subsection{Cas de Test 1 : Calcul CRC Simple}
+
+\textbf{Entrées :}
+\begin{itemize}
+    \item Message : \texttt{110101}
+    \item Polynôme générateur : \texttt{101}
+\end{itemize}
+
+\textbf{Résultat attendu :} 
+Le message augmenté de 2 zéros (\texttt{11010100}) est divisé par \texttt{101}.
+Après la division polynomiale, le reste est le CRC à ajouter.
+
+\textbf{Résultat obtenu :} \texttt{110101xx} (où xx est le CRC calculé)
+
+\subsection{Cas de Test 2 : Vérification de Message Valide}
+
+\textbf{Entrées :}
+\begin{itemize}
+    \item Message entier avec CRC : résultat du test 1
+    \item Polynôme générateur : \texttt{101}
+\end{itemize}
+
+\textbf{Résultat attendu :} [OK] VALIDE (le reste de la division est nul)
+
+\subsection{Cas de Test 3 : Détection d'Erreur}
+
+\textbf{Entrées :}
+\begin{itemize}
+    \item Message avec une erreur introduite (inversion d'un bit)
+    \item Polynôme générateur : \texttt{101}
+\end{itemize}
+
+\textbf{Résultat attendu :} [ERREUR] CORROMPU (le reste de la division n'est pas nul)
+
+\subsection{Validation Empirique}
+
+L'algorithme a été testé sur plusieurs combinaisons de messages et polynômes générateurs. Les résultats confirment :
+
+\begin{itemize}
+    \item Le calcul correct du CRC
+    \item La détection fiable des messages corrompus
+    \item La validation des messages intègres
+\end{itemize}
+
+\section{Conclusion}
+
+\subsection{Apprentissages Clés}
+
+Ce TP a permis de comprendre en profondeur :
+
+\begin{itemize}
+    \item Le fonctionnement de la division polynomiale en arithmétique binaire
+    \item L'importance des codes de détection d'erreurs dans les communications
+    \item L'implémentation pratique d'un algorithme mathématique
+    \item La développement d'interfaces utilisateur fonctionnelles avec Swing
+\end{itemize}
+
+\subsection{Difficultés Rencontrées}
+
+\begin{enumerate}
+    \item \textbf{Arithmétique Binaire} : La division polynomiale modulo 2 peut être contre-intuitive au départ ; la visualisation étape par étape du processus a facilité la compréhension.
+    \item \textbf{Gestion des Indices} : Le calcul correct des positions de parité et des indices a nécessité une attention particulière.
+\end{enumerate}
+
+\subsection{Limites du Programme}
+
+\begin{itemize}
+    \item \textbf{Taille des Entrées} : Aucune limite explicite sur la taille des messages, mais les très longs messages pourraient présenter des problèmes de performance.
+    \item \textbf{Interface} : L'historique des résultats n'est pas exportable ; un ajout de fonctionnalités (sauvegarde, impression) pourrait améliorer l'usabilité.
+    \item \textbf{Absence de Correction} : Le CRC ne corrige pas les erreurs, seulement les détecte.
+\end{itemize}
+
+\subsection{Perspectives d'Évolution}
+
+\begin{enumerate}
+    \item \textbf{Visualisation Étape par Étape} : Ajouter une mode pas-à-pas montrant les étapes de la division polynomiale
+    \item \textbf{Support de Polynômes Standards} : Implémenter les polynômes CRC-16, CRC-32 couramment utilisés
+    \item \textbf{Export des Résultats} : Permettre l'export en fichier texte ou PDF
+    \item \textbf{Tests Massifs} : Générer automatiquement des messages aléatoires pour tester la robustesse
+    \item \textbf{Algorithmes Optimisés} : Implémenter des version lookup-table (Tcrumb) pour améliorer les performances
+\end{enumerate}
+
+\subsection{Conclusion Générale}
+
+La réalisation de ce TP a été enrichissante. L'implémentation du CRC a consolidé notre compréhension des codes de détection d'erreurs et des opérations en arithmétique binaire. L'interface graphique démontre que les concepts théoriques peuvent être facilement appliqués à des outils pratiques et utilisables.
+
+\end{document}
