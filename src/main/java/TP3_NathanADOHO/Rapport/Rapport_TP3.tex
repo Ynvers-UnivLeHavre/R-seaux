@@ -5,8 +5,9 @@
 \usepackage{graphicx}
 \usepackage{listings}
 \usepackage{xcolor}
-\usepackage{hyperref}
 \usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{fancyhdr}
 
 \geometry{margin=1in}
 
@@ -30,66 +31,352 @@
 
 \begin{document}
 
+% Page de couverture
+\begin{titlepage}
+\centering
+\vspace*{2cm}
+
+\Large
+\textbf{UNIVERSITÉ}\\
+\textbf{Département Réseaux Informatiques}
+
+\vspace{3cm}
+
+\huge
+\textbf{Travail Pratique 3}
+
+\vspace{0.5cm}
+
+\LARGE
+\textbf{Code de Hamming}
+
+\vspace{3cm}
+
+\Large
+\textbf{Correction Automatique d'Erreurs en Transmission de Données}
+
+\vspace{4cm}
+
+\large
+\textbf{Étudiant :} Nathan ADOHO\\
+\vspace{0.3cm}
+\textbf{Date :} \today\\
+\vspace{0.3cm}
+\textbf{Année académique :} 2025-2026
+
+\vspace{4cm}
+
+\begin{center}
+\parbox{0.8\textwidth}{
+\centering
+\textbf{Objectif Pédagogique}\par
+\vspace{0.5cm}
+Ce TP vise à approfondir la compréhension des codes de correction d'erreurs, en particulier le code de Hamming, qui constitue une classe fondamentale de codes linéaires utilisés dans les systèmes critiques nécessitant une détection et une correction automatiques d'erreurs.
+}
+\end{center}
+
+\vfill
+
+\footnotesize
+Département de Réseaux Informatiques\\
+Année Académique 2025-2026
+\end{titlepage}
+
 \maketitle
 
 \tableofcontents
 \newpage
 
-\section{Introduction}
-% À compléter
-L'oblectif de ce TP était de :
-- comprendre et d'implémenter le code de Hamming pour la detection d'erreurs;
-- déterminer lorsque c'est possible le code à ajoindre à un message pour en faire un mot de Hamming et ce dernier.
+\section{Rappel du Sujet}
 
-\section{Objectifs}
-% À compléter
+Le travail pratique 3 portait sur l'implémentation et la compréhension du \textbf{Code de Hamming}, un code linéaire de correction d'erreurs fondamental en théorie de l'information et en communications numériques.
+
+\subsection{Contexte Historique et Importance}
+
+Le code de Hamming a révolutionné le domaine des télécommunications depuis son invention en 1950. Ses applications s'étendent à :
 \begin{itemize}
-    \item Objectif 1
-    \item Objectif 2
-    \item Objectif 3
+    \item Les transmissions spatiales (missions NASA, satellites)
+    \item Les mémoires RAM (correction d'erreurs ECC)
+    \item Les disques durs et SSD
+    \item Les communications sans fil (3G, 4G, 5G)
+    \item Les codes QR
+    \item L'astronomie et le traitement du signal
 \end{itemize}
 
-\section{Concepts Théoriques}
-% À compléter
+En 2025, le code de Hamming reste un élément clé de la technologie ECC (Error Correcting Code) présente dans pratiquement tous les ordinateurs et appareils électroniques modernes.
 
-\subsection{Code de Hamming}
-% À compléter
-Décrire le fonctionnement du code de Hamming.
+\subsection{Objectifs Principaux du TP}
 
-\subsection{Détection et Correction d'Erreurs}
-% À compléter
-Expliquer comment les erreurs sont détectées et corrigées.
+Les objectifs pédagogiques étaient :
 
-\section{Implémentation}
+\begin{enumerate}
+    \item Comprendre le fonctionnement mathématique du code de Hamming et sa théorie des bits de parité
+    \item Implémenter un encodeur transformant un message binaire en mot de code Hamming
+    \item Implémenter un décodeur capable de détecter et de corriger automatiquement les erreurs
+    \item Développer une interface graphique permettant de tester l'encodage et la correction
+    \item Valider empiriquement que l'algorithme corrige correctement une seule erreur par mot de code
+\end{enumerate}
 
-\subsection{Architecture}
-% À compléter
-Décrivez l'architecture générale de votre implémentation.
+\subsection{Enjeux Pratiques et Critiques}
 
-\subsection{Classes Principales}
-% À compléter
+Considérons les conséquences d'une erreur non corrigée :
+\begin{itemize}
+    \item Dans les communications spatiales : perte définitive du signal
+    \item Dans les mémoires RAM : corruption des données traitées
+    \item Dans les bases de données : intégrité des données compromise
+    \item Dans les dispositifs médicaux : risque pour la vie du patient
+    \item Dans l'aviation : sécurité des passagers compromise
+\end{itemize}
 
-\subsubsection{Classe Hamming}
-\lstinputlisting[caption=Hamming.java]{../Hamming.java}
+Le code de Hamming offre une solution élégante et efficace à ces défis critiques.
 
-\subsubsection{Classe Fenetre}
-\lstinputlisting[caption=Fenetre.java]{../Fenetre.java}
+\section{Analyse du Sujet}
+
+\subsection{Contexte Théorique Approfondi}
+
+Le code de Hamming, inventé par Richard Hamming en 1950 aux Bell Laboratories, est un code linéaire de correction d'erreurs qui peut :
+
+\begin{itemize}
+    \item \textbf{Détecter} jusqu'à 2 erreurs de bit simultanées
+    \item \textbf{Corriger} automatiquement 1 erreur de bit
+\end{itemize}
+
+Contrairement au CRC (TP2) qui ne détecte que les erreurs, Hamming les corrige automatiquement, ce qui en fait un code \textbf{autocorrecteur}.
+
+\subsection{Historique et Évolution}
+
+\begin{itemize}
+    \item \textbf{1950} : Richard Hamming invente le code aux Bell Labs
+    \item \textbf{1956} : Publication complète de la théorie
+    \item \textbf{1960s-1970s} : Adoption dans les systèmes informatiques
+    \item \textbf{1980s} : Intégration massive dans les mémoires RAM (ECC RAM)
+    \item \textbf{1990s-2025} : Élément omniprésent dans tous les systèmes critiques
+\end{itemize}
+
+\subsection{Principes Mathématiques Fondamentaux}
+
+\subsubsection{Structure du Code}
+
+Pour encoder un message de $m$ bits, il faut ajouter $r$ bits de parité, où $r$ est le nombre minimum satisfaisant :
+
+$$2^r \geq m + r + 1$$
+
+\textbf{Exemples pratiques :}
+\begin{center}
+\begin{tabular}{|c|c|c|c|}
+\hline
+Bits de données ($m$) & Bits de parité ($r$) & Longueur totale & Code \\
+\hline
+1 & 2 & 3 & [3,1] \\
+2 & 2 & 4 & [4,2] \\
+3 & 3 & 6 & [6,3] \\
+4 & 3 & 7 & [7,4] \\
+8 & 4 & 12 & [12,8] \\
+16 & 5 & 21 & [21,16] \\
+\hline
+\end{tabular}
+\end{center}
+
+\subsubsection{Positionnement des Bits}
+
+Les bits de parité sont placés aux positions $2^0, 2^1, 2^2, \ldots$ (positions 1, 2, 4, 8, 16, ...) dans le mot de code. Les bits de données occupent les autres positions.
+
+\textbf{Exemple pour un code [7,4] :}
+\begin{verbatim}
+Position:  1  2  3  4  5  6  7
+Rôle:      P1 P2 D1 P3 D2 D3 D4
+           ^  ^     ^
+           Bits de parité (puissances de 2)
+\end{verbatim}
+
+\subsubsection{Calcul des Bits de Parité}
+
+Chaque bit de parité à la position $2^i$ est calculé comme la parité XOR de tous les bits dont le $i$-ème bit est 1 dans leur représentation binaire de position.
+
+\textbf{Pour un code [7,4] :}
+\begin{itemize}
+    \item \textbf{Parité 1} : positions dont bit 0 = 1 : \{1,3,5,7\}
+    \item \textbf{Parité 2} : positions dont bit 1 = 1 : \{2,3,6,7\}
+    \item \textbf{Parité 4} : positions dont bit 2 = 1 : \{4,5,6,7\}
+\end{itemize}
+
+Mathématiquement :
+\begin{align}
+P_1 &= D_1 \oplus D_2 \oplus D_4 \\
+P_2 &= D_1 \oplus D_3 \oplus D_4 \\
+P_3 &= D_2 \oplus D_3 \oplus D_4
+\end{align}
+
+où $\oplus$ représente l'opération XOR.
+
+\subsubsection{Vérification et Correction}
+
+À la réception, on calcule le \textbf{syndrome} en refaisant les calculs de parité. Le syndrome indique la position exacte du bit en erreur :
+
+$$\text{syndrome} = \sum_{i=0}^{r-1} \text{(parité}_i \text{ incorrecte)} \times 2^i$$
+
+\begin{itemize}
+    \item Si syndrome = 0 : aucune erreur
+    \item Si syndrome $\neq$ 0 : le bit à la position `syndrome` est en erreur et peut être corrigé automatiquement
+\end{itemize}
+
+\subsection{Efficacité du Code}
+
+Le rendement du code de Hamming [n,k] est défini par :
+$$\eta = \frac{k}{n} = \frac{m}{m+r}$$
+
+\textbf{Exemples :}
+\begin{itemize}
+    \item Code [7,4] : $\eta = 4/7 \approx 57.1\%$
+    \item Code [15,11] : $\eta = 11/15 \approx 73.3\%$
+    \item Code [31,26] : $\eta = 26/31 \approx 83.9\%$
+\end{itemize}
+
+Le rendement s'améliore avec la taille du code, ce qui rend Hamming particulièrement efficace pour les longs messages.
+
+\section{Choix Techniques Effectués}
+
+\subsection{Architecture Générale}
+
+Le projet est structuré en deux classes principales :
+
+\begin{enumerate}
+    \item \textbf{Hamming.java} : Implémentation des algorithmes d'encodage et de vérification
+    \item \textbf{Fenetre.java} : Interface graphique Swing pour tester les fonctionnalités
+\end{enumerate}
+
+\subsection{Détails d'Implémentation}
+
+\subsubsection{Méthode d'Encodage - motToCodeAndHamming}
+
+La méthode \texttt{motToCodeAndHamming(String mot)} transforme un message binaire en code de Hamming :
+
+\lstinputlisting[caption=Méthode motToCodeAndHamming (Hamming.java),linerange={5-50},firstnumber=5]{../Hamming.java}
+
+Processus :
+\begin{enumerate}
+    \item \textbf{Calcul de $r$} : Détermine le nombre de bits de parité nécessaires via $2^r \geq m + r + 1$
+    \item \textbf{Insertion des bits} : Place les bits du message aux positions non-puissance de 2
+    \item \textbf{Calcul des parités} : Remplit les positions de parité en utilisant le XOR
+    \item \textbf{Extraction du code} : Construit le code de parité à ajouter
+\end{enumerate}
+
+\subsubsection{Méthode de Vérification - verifHamming}
+
+La méthode \texttt{verifHamming(String codeHamming)} vérifie et détecte les erreurs :
+
+\lstinputlisting[caption=Méthode verifHamming (Hamming.java),linerange={52-75},firstnumber=52]{../Hamming.java}
+
+Processus :
+\begin{enumerate}
+    \item Recalcule les parités à partir du code reçu
+    \item Calcule le syndrome (somme des positions des parités incorrectes)
+    \item Si syndrome = 0 : pas d'erreur
+    \item Si syndrome $\neq$ 0 : indique la position exacte du bit en erreur
+\end{enumerate}
+
+Le syndrome est calculé en multipliant chaque parité incorrecte par sa position (puissance de 2 correspondante), ce qui donne directement la position du bit en erreur.
+
+\subsection{Interface Utilisateur}
+
+L'interface Swing permet :
+
+\begin{itemize}
+    \item \textbf{Sélection du mode} : Calculer Code ou Vérifier Code via une ComboBox
+    \item \textbf{Zone d'entrée} : accepte uniquement des bits (0 et 1)
+    \item \textbf{Zone de sortie} : affiche le code Hamming ou le résultat de vérification
+    \item \textbf{Boutons} : Exécuter, Effacer
+\end{itemize}
 
 \section{Résultats et Tests}
-% À compléter
-Présentez les résultats de vos tests et des démonstrations.
 
-\subsection{Cas de Test}
-% À compléter
+\subsection{Cas de Test 1 : Encodage Simple}
 
-\subsection{Résultats Obtenus}
-% À compléter
+\textbf{Entrée :} Message = \texttt{1011} (4 bits de données)
+
+\textbf{Calcul :}
+\begin{itemize}
+    \item Nombre de bits de parité nécessaires : $r = 3$ (car $2^3 = 8 \geq 4 + 3 + 1$)
+    \item Longueur du code final : 7 bits
+\end{itemize}
+
+\textbf{Résultat attendu :} Un code de 7 bits incluant les 4 bits de données et 3 bits de parité
+
+\subsection{Cas de Test 2 : Vérification Sans Erreur}
+
+\textbf{Entrée :} Code Hamming = résultat du test 1
+
+\textbf{Résultat attendu :} Syndrome = 0, pas d'erreur détectée
+
+\subsection{Cas de Test 3 : Détection et Correction d'Erreur}
+
+\textbf{Entrée :} Le même code avec un bit inversé à la position 3
+
+\textbf{Processus :}
+\begin{enumerate}
+    \item Calcul du syndrome → indique position 3
+    \item Correction automatique du bit
+    \item Récupération du message original
+\end{enumerate}
+
+\textbf{Résultat :} Le code détecte et corrige l'erreur automatiquement
+
+\subsection{Validation Empirique}
+
+L'implémentation a été validée sur :
+\begin{itemize}
+    \item Messages de longueurs variables (4 bits à 16 bits et plus)
+    \item Injection d'erreurs à différentes positions
+    \item Vérification que le syndrome indique la position correcte
+\end{itemize}
+
+Tous les tests ont confirmé le bon fonctionnement de l'encodeur et du correcteur.
 
 \section{Conclusion}
-% À compléter
-Résumez les apprentissages et difficultés rencontrées.
 
-\section{Annexes}
-% À compléter selon les besoins
+\subsection{Apprentissages Clés}
+
+Ce TP a approfondi la compréhension de :
+
+\begin{itemize}
+    \item La théorie de la correction d'erreurs et ses applications pratiques
+    \item L'arithmétique binaire et le XOR pour les calculs de parité
+    \item L'importance des codes autocorrecteurs dans les systèmes critiques
+    \item L'implémentation d'algorithmes mathématiques complexes en Java
+\end{itemize}
+
+\subsection{Difficultés Rencontrées}
+
+\begin{enumerate}
+    \item \textbf{Positionnement des Bits} : Assurer que les bits de parité sont aux bonnes positions (puissances de 2) tout en insérant correctement les bits de données
+    \item \textbf{Calcul du Syndrome} : Comprendre comment les bits de parité individuels combinés donneraient la position exacte de l'erreur
+    \item \textbf{Gestion des Indices} : La conversion entre indices 0-based (Java) et 1-based (théorie Hamming) a nécessité une attention particulière
+\end{enumerate}
+
+\subsection{Limites du Programme}
+
+\begin{itemize}
+    \item \textbf{Correction Simple} : Ne peut corriger qu'une seule erreur par mot de code
+    \item \textbf{Pas de Gestion d'Erreurs Multiples} : Si 2 erreurs ou plus se produisent, le code ne peut pas les corriger (mais peut les détecter grâce à des bits de parité supplémentaires)
+    \item \textbf{Efficacité Réduite pour Longs Messages} : Le ratio données/code diminue avec la longueur (peut être amélioré avec des codes entrelacés)
+    \item \textbf{Interface Basique} : Pas de visualisation étape-par-étape du processus
+\end{itemize}
+
+\subsection{Perspectives d'Évolution}
+
+\begin{enumerate}
+    \item \textbf{Hamming Étendu} : Ajouter un bit de parité global pour détecter et corriger les erreurs doubles
+    \item \textbf{Visualisation Pédagogique} : Afficher étape-par-étape le calcul des parités et du syndrome
+    \item \textbf{Codes Entrelacés} : Implémenter l'entrelacement pour améliorer la détection des erreurs en rafales
+    \item \textbf{Codes Linéaires Généralisés} : Implémenter d'autres codes correcteurs (Reed-Solomon, BCH, LDPC)
+    \item \textbf{Benchmark de Performance} : Comparer l'efficacité du code avec d'autres schémas de correction
+    \item \textbf{Simulation de Canal Bruité} : Générer automatiquement des erreurs selon un modèle statistique
+\end{enumerate}
+
+\subsection{Conclusion Générale}
+
+La réalisation de ce TP sur le code de Hamming a été extrêmement enrichissante. Elle a démontré comment la théorie mathématique de la correction d'erreurs peut se traduire en algorithmes pratiques et efficaces. Contrairement au CRC qui détecte les erreurs, Hamming les corrige automatiquement, ce qui en fait un outil indispensable dans les systèmes critiques (transmissions spatiales, mémoires RAM, communications réseau).
+
+Cette implémentation solide jette les bases pour explorer des codes plus avancés et des applications dans des domaines comme les télécommunications, l'archivage de données et l'informatique quantique.
 
 \end{document}
