@@ -1,4 +1,4 @@
-package TP2_NathanADOHO;
+package TP2;
 
 public class CRC {
 

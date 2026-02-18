@@ -1,4 +1,4 @@
-package TP3_NathanADOHO;
+package TP3;
 
 public class Hamming {
     protected static String[] motToCodeAndHamming(String mot) {

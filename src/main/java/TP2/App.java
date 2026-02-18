@@ -1,4 +1,4 @@
-package TP2_NathanADOHO;
+package TP2;
 
 import java.awt.Container;
 import java.awt.GridLayout;

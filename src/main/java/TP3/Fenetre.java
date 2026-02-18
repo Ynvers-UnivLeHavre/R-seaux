@@ -1,4 +1,4 @@
-package TP3_NathanADOHO;
+package TP3;
 
 import java.awt.BorderLayout;
 import java.awt.Container;

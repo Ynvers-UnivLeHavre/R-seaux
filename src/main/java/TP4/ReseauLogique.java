@@ -1,0 +1,109 @@
+package TP4;
+
+
+import java.io.IOException;
+import java.util.Map;
+import java.util.TreeMap;
+
+import org.graphstream.graph.Path;
+import org.graphstream.algorithm.Dijkstra;
+import org.graphstream.graph.Edge;
+import org.graphstream.graph.Graph;
+import org.graphstream.graph.Node;
+import org.graphstream.graph.implementations.SingleGraph;
+import org.graphstream.stream.file.FileSourceDGS;
+
+public class ReseauLogique {
+	private Graph graph;
+
+	public ReseauLogique(String id) {
+		System.setProperty("org.graphstream.ui", "swing");
+		this.graph = new SingleGraph(id);
+		this.appliquerStyle();
+	}
+
+	public ReseauLogique(java.io.File fichierDGS) throws IOException {
+		this.graph = new SingleGraph("ReseauImporte");
+		this.appliquerStyle();
+
+		FileSourceDGS source = new FileSourceDGS();
+		source.addSink(this.graph);
+		source.readAll(fichierDGS.getAbsolutePath());
+	}
+
+	private void appliquerStyle() {
+		this.graph.setAttribute("ui.stylesheet",
+			"node.machine { fill-color: blue; size: 20px; } " + 
+			"node.switch { fill-color: red; shape: box; size: 30px; } " + 
+			"edge { text-alignment: along; text-size: 15; } " +
+			"node { text-size: 15; text-background-mode: plain; }"
+		);
+	}
+
+	public void ajouterEquipement(String id, boolean estSwitch) {
+		Node n = graph.addNode(id);
+		n.setAttribute("ui.label", id);
+		n.setAttribute("ui.class", estSwitch ? "switch" : "machine");
+	}
+
+	public void connecter(String id1, String id2, int poid, int port1, int port2) {
+		Edge e = graph.addEdge(id1 + "-" + id2, id1, id2);
+		e.setAttribute("poid", poid);
+		e.setAttribute("ui.label", poid);
+
+		if ("switch".equals(this.graph.getNode(id1).getAttribute("ui.class")))
+			e.setAttribute("port." + id1, port1);
+		if ("switch".equals(this.graph.getNode(id2).getAttribute("ui.class")))
+			e.setAttribute("port." + id2, port2);
+	}
+
+		public Map<String, Route> tableRoutage(String idSwitch) {
+		Map<String, Route> table = new TreeMap<>();
+		Node n = this.graph.getNode(idSwitch);
+
+		if (n == null || !"switch".equals(n.getAttribute("ui.class")))
+			return table;
+
+		for (Node dest : this.graph) {
+			if (dest != n && "switch".equals(dest.getAttribute("ui.class"))) {
+				Path p = plusCourtChemin(n.getId(), dest.getId());
+
+				if (p != null && p.size() > 0) {
+					String nextHop = p.getNodePath().get(1).getId();
+					double coutTotal = p.getPathWeight("poid");
+					table.put(dest.getId(), new Route(nextHop, coutTotal));
+				}
+			}
+		}
+		return table;
+	}
+
+	public Path plusCourtChemin(String idOrigine, String idDestination) {
+		Node source = this.graph.getNode(idOrigine);
+		Node dest = this.graph.getNode(idDestination);
+
+		if (source == null || dest == null)
+			return null;
+
+		Dijkstra dijkstra = new Dijkstra(Dijkstra.Element.EDGE, null, "poid");
+		dijkstra.init(this.graph);
+		dijkstra.setSource(source);
+		dijkstra.compute();
+
+		return dijkstra.getPath(dest);
+	}
+
+	private class Route {
+		private String prochainSaut;
+		private double cout;
+
+		public Route(String prochainSaut, double cout) {
+			this.prochainSaut = prochainSaut;
+			this.cout = cout;
+		}
+	}
+
+	public void display() {
+		this.graph.display();
+	}
+}

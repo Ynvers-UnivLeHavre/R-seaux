@@ -1,4 +1,4 @@
-package TP1_NathanADOHO;
+package TP1;
 
 import java.awt.BasicStroke;
 import java.awt.Color;
