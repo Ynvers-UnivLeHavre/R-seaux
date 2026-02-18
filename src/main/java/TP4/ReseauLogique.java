@@ -31,18 +31,22 @@ public class ReseauLogique {
 		source.readAll(fichierDGS.getAbsolutePath());
 
 		for (Edge e : this.graph.getEdgeSet()) {
+			Node n1 = e.getNode0();
+			Node n2 = e.getNode1();
+			
+			boolean hasMachine = "machine".equals(n1.getAttribute("ui.class")) || 
+								 "machine".equals(n2.getAttribute("ui.class"));
+
 			Object poid = e.getAttribute("poid");
-			if (poid instanceof Integer) {
-				e.setAttribute("poid", ((Integer) poid).doubleValue());
-			} else if (poid instanceof String) {
-				try {
-					e.setAttribute("poid", Double.parseDouble((String) poid));
-				} catch (NumberFormatException ex) {
-					// ignorer
-				}
+			if (poid != null) {
+				double var = Double.parseDouble(poid.toString());
+				e.setAttribute("poid", var);
+
+				if (!hasMachine)
+					e.setAttribute("ui.label", poid.toString());
+				else
+					e.setAttribute("ui.label", "");
 			}
-			if (poid != null)
-				e.setAttribute("ui.label", poid.toString());
 		}
 	}
 
@@ -85,10 +89,11 @@ public class ReseauLogique {
 		}
 
 		Edge e = graph.addEdge(id1 + "-" + id2, id1, id2);
-		e.setAttribute("poid", poid);
-		e.setAttribute("ui.label", poid);
+		e.setAttribute("poid", poidEffectif);
 
-		if (!isM1 && !isM2)
+		if (isM1 || isM2)
+			e.setAttribute("ui.label", "");
+		else 
 			e.setAttribute("ui.label", poidEffectif);
 
 		if ("switch".equals(this.graph.getNode(id1).getAttribute("ui.class")))
