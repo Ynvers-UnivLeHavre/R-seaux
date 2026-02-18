@@ -1,4 +1,4 @@
-package TP1-NathanADOHO;
+package TP1;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 

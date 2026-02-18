@@ -29,6 +29,21 @@ public class ReseauLogique {
 		FileSourceDGS source = new FileSourceDGS();
 		source.addSink(this.graph);
 		source.readAll(fichierDGS.getAbsolutePath());
+
+		for (Edge e : this.graph.getEdgeSet()) {
+			Object poid = e.getAttribute("poid");
+			if (poid instanceof Integer) {
+				e.setAttribute("poid", ((Integer) poid).doubleValue());
+			} else if (poid instanceof String) {
+				try {
+					e.setAttribute("poid", Double.parseDouble((String) poid));
+				} catch (NumberFormatException ex) {
+					// ignorer
+				}
+			}
+			if (poid != null)
+				e.setAttribute("ui.label", poid.toString());
+		}
 	}
 
 	private void appliquerStyle() {
@@ -47,9 +62,34 @@ public class ReseauLogique {
 	}
 
 	public void connecter(String id1, String id2, int poid, int port1, int port2) {
+		Node n1 = graph.getNode(id1);
+		Node n2 = graph.getNode(id2);
+		
+		boolean isM1 = "machine".equals(n1.getAttribute("ui.class"));
+		boolean isM2 = "machine".equals(n2.getAttribute("ui.class"));
+
+		if (isM1 && isM2) {
+				System.err.println("Erreur : Impossible de connecter deux machines directement (" + id1 + " <-> " + id2 + ")");
+				return;
+		}
+
+		int poidEffectif = (isM1 || isM2) ? 0 : poid;
+
+		if (isM1 && n1.getDegree() > 0) {
+			System.err.println("Erreur : La machine " + id1 + " est déjà connectée à un switch.");
+			return;
+		}
+		if (isM2 && n2.getDegree() > 0) {
+			System.err.println("Erreur : La machine " + id2 + " est déjà connectée à un switch.");
+			return;
+		}
+
 		Edge e = graph.addEdge(id1 + "-" + id2, id1, id2);
 		e.setAttribute("poid", poid);
 		e.setAttribute("ui.label", poid);
+
+		if (!isM1 && !isM2)
+			e.setAttribute("ui.label", poidEffectif);
 
 		if ("switch".equals(this.graph.getNode(id1).getAttribute("ui.class")))
 			e.setAttribute("port." + id1, port1);
@@ -93,9 +133,9 @@ public class ReseauLogique {
 		return dijkstra.getPath(dest);
 	}
 
-	private class Route {
-		private String prochainSaut;
-		private double cout;
+	public class Route {
+		public String prochainSaut;
+		public double cout;
 
 		public Route(String prochainSaut, double cout) {
 			this.prochainSaut = prochainSaut;

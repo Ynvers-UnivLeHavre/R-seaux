@@ -2,11 +2,22 @@ DGS004
 ReseauLocal 0 0
 an "M1" ui.class:"machine" ui.label:"PC-Nathan"
 an "M2" ui.class:"machine" ui.label:"PC-Cible"
+an "M3" ui.class:"machine" ui.label:"PC-Lucas"
+an "M4" ui.class:"machine" ui.label:"PC-Alice"
+an "M5" ui.class:"machine" ui.label:"PC-Bob"
 an "S1" ui.class:"switch" ui.label:"Switch-A"
 an "S2" ui.class:"switch" ui.label:"Switch-B"
 an "S3" ui.class:"switch" ui.label:"Switch-C"
-ae "L1" "M1" "S1" poid:1 ui.label:"1Gbps"
-ae "L2" "S1" "S2" poid:5 ui.label:"Inter-B"
-ae "L3" "S1" "S3" poid:2 ui.label:"Inter-C"
-ae "L4" "S2" "M2" poid:1 ui.label:"1Gbps"
-ae "L5" "S3" "S2" poid:2 ui.label:"Backup"
+an "S4" ui.class:"switch" ui.label:"Switch-D"
+an "S5" ui.class:"switch" ui.label:"Switch-E"
+ae "L1" "M1" "S1" poid:1
+ae "L2" "S1" "S2" poid:5
+ae "L3" "S1" "S3" poid:2
+ae "L4" "S2" "M2" poid:1
+ae "L5" "S3" "S2" poid:2
+ae "L6" "M3" "S3" poid:1
+ae "L7" "S2" "S4" poid:3
+ae "L8" "M4" "S4" poid:1
+ae "L9" "S4" "S5" poid:2
+ae "L10" "M5" "S5" poid:1
+ae "L11" "S3" "S5" poid:2
