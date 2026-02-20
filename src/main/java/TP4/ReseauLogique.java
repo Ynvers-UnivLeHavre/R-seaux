@@ -2,7 +2,8 @@ package TP4;
 
 
 import java.io.IOException;
-
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -103,26 +104,51 @@ public class ReseauLogique {
 			e.setAttribute("port." + id2, port2);
 	}
 
-		public Map<String, Route> tableRoutage(String idSwitch) {
+	public Map<String, Route> tableRoutage(String idSwitch) {
 		Map<String, Route> table = new TreeMap<>();
 		Node n = this.graph.getNode(idSwitch);
 
 		if (n == null || !"switch".equals(n.getAttribute("ui.class")))
-			return table;
+				return table;
 
 		for (Node dest : this.graph) {
 			if (dest != n && "switch".equals(dest.getAttribute("ui.class"))) {
-				Path p = plusCourtChemin(n.getId(), dest.getId());
+				Route routeDest = new Route();
 
-				if (p != null && p.size() > 0) {
-					String nextHop = p.getNodePath().get(1).getId();
-					double coutTotal = p.getPathWeight("poid");
-					table.put(dest.getId(), new Route(nextHop, coutTotal));
+				for (Edge e : n.getEachEdge()) {
+					Node voisin = e.getOpposite(n);
+
+					if (!"switch".equals(voisin.getAttribute("ui.class")))
+						continue;
+
+					double poidsLienVersVoisin = e.getNumber("poid");
+
+					List<Double> poidsOriginaux = new ArrayList<>();
+					List<Edge> aretesAdjacentes = new ArrayList<>();
+					for (Edge adj : n.getEachEdge()) {
+						aretesAdjacentes.add(adj);
+						poidsOriginaux.add(adj.getNumber("poid"));
+						adj.setAttribute("poid", 999999.0); // Coût prohibitif
+					}
+
+					Path cheminDepuisVoisin = plusCourtChemin(voisin.getId(), dest.getId());
+
+					for (int i = 0; i < aretesAdjacentes.size(); i++)
+						aretesAdjacentes.get(i).setAttribute("poid", poidsOriginaux.get(i));
+
+					if (cheminDepuisVoisin != null && cheminDepuisVoisin.getPathWeight("poid") < 999999.0) {
+						double coutVoisinVersDest = cheminDepuisVoisin.getPathWeight("poid");
+						double coutTotalParCeVoisin = poidsLienVersVoisin + coutVoisinVersDest;
+						routeDest.ajouterOption(voisin.getId(), coutTotalParCeVoisin);
+					}
 				}
+
+				if (!routeDest.optionsVoisins.isEmpty())
+					table.put(dest.getId(), routeDest);
 			}
 		}
 		return table;
-	}
+}
 
 	public Path plusCourtChemin(String idOrigine, String idDestination) {
 		Node source = this.graph.getNode(idOrigine);
@@ -139,13 +165,20 @@ public class ReseauLogique {
 		return dijkstra.getPath(dest);
 	}
 
-	public class Route {
-		public String prochainSaut;
-		public double cout;
+	public static class Route {
+		public Map<String, Double> optionsVoisins;
 
-		public Route(String prochainSaut, double cout) {
-			this.prochainSaut = prochainSaut;
-			this.cout = cout;
+		public Route() {
+			this.optionsVoisins = new TreeMap<>();
+		}
+
+		public void ajouterOption(String voisin, double coutTotal) {
+			this.optionsVoisins.put(voisin, coutTotal);
+		}
+
+		@Override
+		public String toString() {
+			return optionsVoisins.toString();
 		}
 	}
 
