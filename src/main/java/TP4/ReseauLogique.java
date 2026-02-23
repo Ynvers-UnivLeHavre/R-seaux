@@ -2,6 +2,7 @@ package TP4;
 
 
 import java.io.IOException;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,7 @@ public class ReseauLogique {
 		source.addSink(this.graph);
 		source.readAll(fichierDGS.getAbsolutePath());
 
-		for (Edge e : this.graph.getEdgeSet()) {
+		for (Edge e : (Iterable<Edge>) graph.edges()::iterator) {
 			Node n1 = e.getNode0();
 			Node n2 = e.getNode1();
 			
@@ -115,7 +116,7 @@ public class ReseauLogique {
 			if (dest != n && "switch".equals(dest.getAttribute("ui.class"))) {
 				Route routeDest = new Route();
 
-				for (Edge e : n.getEachEdge()) {
+				for (Edge e : (Iterable<Edge>) n.edges()::iterator) {
 					Node voisin = e.getOpposite(n);
 
 					if (!"switch".equals(voisin.getAttribute("ui.class")))
@@ -125,7 +126,7 @@ public class ReseauLogique {
 
 					List<Double> poidsOriginaux = new ArrayList<>();
 					List<Edge> aretesAdjacentes = new ArrayList<>();
-					for (Edge adj : n.getEachEdge()) {
+					for (Edge adj : (Iterable<Edge>) n.edges()::iterator) {
 						aretesAdjacentes.add(adj);
 						poidsOriginaux.add(adj.getNumber("poid"));
 						adj.setAttribute("poid", 999999.0); // Coût prohibitif
@@ -165,6 +166,34 @@ public class ReseauLogique {
 		return dijkstra.getPath(dest);
 	}
 
+	public void colorierOptionsRoutage(String idSource, String idDest) {
+		Map<String, Route> routes = tableRoutage(idSource);
+		Route r = routes.get(idDest);
+		reinitialiserStyle();
+		if (r == null) return;
+
+		String[] couleurs = {"blue", "red", "green", "orange", "magenta", "cyan"};
+		int i = 0;
+		for (String voisin : r.optionsVoisins.keySet()) {
+			Edge e = graph.getNode(idSource).getEdgeBetween(voisin);
+			if (e != null) {
+				e.setAttribute("ui.style", "fill-color: " + couleurs[i % couleurs.length] + "; width: 5px;");
+				i++;
+			}
+		}
+	}
+
+	public void colorierChemin(Path p) {
+		reinitialiserStyle();
+		if (p == null) return;
+		for (Edge e : p.getEdgePath())
+			e.setAttribute("ui.style", "fill-color: red; width: 4px;");
+	}
+
+	private void reinitialiserStyle() {
+		for (Edge e : (Iterable<Edge>) graph.edges()::iterator)
+			e.setAttribute("ui.style", "fill-color: gray; width: 1px;");
+	}
 	public static class Route {
 		public Map<String, Double> optionsVoisins;
 
@@ -184,5 +213,9 @@ public class ReseauLogique {
 
 	public void display() {
 		this.graph.display();
+	}
+
+	public Graph getGraph() {
+		return this.graph;
 	}
 }
