@@ -17,6 +17,14 @@ import org.graphstream.graph.implementations.SingleGraph;
 import org.graphstream.stream.file.FileSourceDGS;
 
 public class ReseauLogique {
+	private static final String ATTR_POID = "poid";
+	private static final String ATTR_UI_CLASS = "ui.class";
+	private static final String ATTR_UI_LABEL = "ui.label";
+	private static final String ATTR_UI_STYLE = "ui.style";
+	private static final String CLASS_SWITCH = "switch";
+	private static final String CLASS_MACHINE = "machine";
+	private static final String EDGE_CLASS_DASHED = "dashed";
+
 	private Graph graph;
 
 	public ReseauLogique(String id) {
@@ -37,43 +45,76 @@ public class ReseauLogique {
 			Node n1 = e.getNode0();
 			Node n2 = e.getNode1();
 			
-			boolean hasMachine = "machine".equals(n1.getAttribute("ui.class")) || 
-								 "machine".equals(n2.getAttribute("ui.class"));
+			boolean hasMachine = isMachine(n1) || isMachine(n2);
 
-			Object poid = e.getAttribute("poid");
+			Object poid = e.getAttribute(ATTR_POID);
 			if (poid != null) {
-				double var = Double.parseDouble(poid.toString());
-				e.setAttribute("poid", var);
+				double poids = Double.parseDouble(poid.toString());
+				e.setAttribute(ATTR_POID, poids);
 
 				if (!hasMachine)
-					e.setAttribute("ui.label", poid.toString());
+					e.setAttribute(ATTR_UI_LABEL, poid.toString());
 				else
-					e.setAttribute("ui.label", "");
+					e.setAttribute(ATTR_UI_LABEL, "");
+			}
+
+			if (hasMachine) {
+				e.setAttribute(ATTR_UI_CLASS, EDGE_CLASS_DASHED);
 			}
 		}
 	}
 
 	private void appliquerStyle() {
 		this.graph.setAttribute("ui.stylesheet",
-			"node.machine { fill-color: blue; size: 20px; } " + 
-			"node.switch { fill-color: red; shape: box; size: 30px; } " + 
-			"edge { text-alignment: along; text-size: 15; } " +
-			"node { text-size: 15; text-background-mode: plain; }"
+			"node.switch { " +
+			"  fill-color: #1976D2; " +
+			"  shape: circle; " +
+			"  size: 50px; " +
+			"  text-color: white; " +
+			"  text-size: 13; " +
+			"} " +
+			"node.machine { " +
+			"  fill-color: #FF6F00; " +
+			"  shape: box; " +
+			"  size: 35px; " +
+			"  text-color: white; " +
+			"  text-size: 13; " +
+			"} " +
+			"edge { " +
+			"  text-alignment: along; " +
+			"  text-size: 14; " +
+			"  text-color: #555555; " +
+			"  stroke-color: gray; " +
+			"  size: 1px; " +
+			"} " +
+			"edge.dashed { " +
+			"  stroke-mode: dashes; " +
+			"} " +
+			"edge.chemin { " +
+			"  stroke-color: green; " +
+			"  size: 4px; " +
+			"} " +
+			"node { " +
+			"  text-background-mode: none; " +
+			"}"
 		);
 	}
 
 	public void ajouterEquipement(String id, boolean estSwitch) {
 		Node n = graph.addNode(id);
-		n.setAttribute("ui.label", id);
-		n.setAttribute("ui.class", estSwitch ? "switch" : "machine");
+		n.setAttribute(ATTR_UI_LABEL, id);
+		n.setAttribute(ATTR_UI_CLASS, estSwitch ? CLASS_SWITCH : CLASS_MACHINE);
 	}
 
 	public void connecter(String id1, String id2, int poid, int port1, int port2) {
 		Node n1 = graph.getNode(id1);
 		Node n2 = graph.getNode(id2);
+		if (n1 == null || n2 == null) {
+			throw new IllegalArgumentException("Nœud introuvable");
+		}
 		
-		boolean isM1 = "machine".equals(n1.getAttribute("ui.class"));
-		boolean isM2 = "machine".equals(n2.getAttribute("ui.class"));
+		boolean isM1 = isMachine(n1);
+		boolean isM2 = isMachine(n2);
 
 		if (isM1 && isM2) {
 				System.err.println("Erreur : Impossible de connecter deux machines directement (" + id1 + " <-> " + id2 + ")");
@@ -92,16 +133,18 @@ public class ReseauLogique {
 		}
 
 		Edge e = graph.addEdge(id1 + "-" + id2, id1, id2);
-		e.setAttribute("poid", poidEffectif);
+		e.setAttribute(ATTR_POID, poidEffectif);
 
-		if (isM1 || isM2)
-			e.setAttribute("ui.label", "");
-		else 
-			e.setAttribute("ui.label", poidEffectif);
+		if (isM1 || isM2) {
+			e.setAttribute(ATTR_UI_LABEL, "");
+			e.setAttribute(ATTR_UI_CLASS, EDGE_CLASS_DASHED);
+		} else {
+			e.setAttribute(ATTR_UI_LABEL, poidEffectif);
+		}
 
-		if ("switch".equals(this.graph.getNode(id1).getAttribute("ui.class")))
+		if (isSwitch(this.graph.getNode(id1)))
 			e.setAttribute("port." + id1, port1);
-		if ("switch".equals(this.graph.getNode(id2).getAttribute("ui.class")))
+		if (isSwitch(this.graph.getNode(id2)))
 			e.setAttribute("port." + id2, port2);
 	}
 
@@ -109,36 +152,36 @@ public class ReseauLogique {
 		Map<String, Route> table = new TreeMap<>();
 		Node n = this.graph.getNode(idSwitch);
 
-		if (n == null || !"switch".equals(n.getAttribute("ui.class")))
+		if (n == null || !isSwitch(n))
 				return table;
 
 		for (Node dest : this.graph) {
-			if (dest != n && "switch".equals(dest.getAttribute("ui.class"))) {
+			if (dest != n && isSwitch(dest)) {
 				Route routeDest = new Route();
 
 				for (Edge e : (Iterable<Edge>) n.edges()::iterator) {
 					Node voisin = e.getOpposite(n);
 
-					if (!"switch".equals(voisin.getAttribute("ui.class")))
+					if (!isSwitch(voisin))
 						continue;
 
-					double poidsLienVersVoisin = e.getNumber("poid");
+					double poidsLienVersVoisin = e.getNumber(ATTR_POID);
 
 					List<Double> poidsOriginaux = new ArrayList<>();
 					List<Edge> aretesAdjacentes = new ArrayList<>();
 					for (Edge adj : (Iterable<Edge>) n.edges()::iterator) {
 						aretesAdjacentes.add(adj);
-						poidsOriginaux.add(adj.getNumber("poid"));
-						adj.setAttribute("poid", 999999.0); // Coût prohibitif
+						poidsOriginaux.add(adj.getNumber(ATTR_POID));
+						adj.setAttribute(ATTR_POID, 999999.0); // Coût prohibitif
 					}
 
 					Path cheminDepuisVoisin = plusCourtChemin(voisin.getId(), dest.getId());
 
 					for (int i = 0; i < aretesAdjacentes.size(); i++)
-						aretesAdjacentes.get(i).setAttribute("poid", poidsOriginaux.get(i));
+						aretesAdjacentes.get(i).setAttribute(ATTR_POID, poidsOriginaux.get(i));
 
-					if (cheminDepuisVoisin != null && cheminDepuisVoisin.getPathWeight("poid") < 999999.0) {
-						double coutVoisinVersDest = cheminDepuisVoisin.getPathWeight("poid");
+					if (cheminDepuisVoisin != null && cheminDepuisVoisin.getPathWeight(ATTR_POID) < 999999.0) {
+						double coutVoisinVersDest = cheminDepuisVoisin.getPathWeight(ATTR_POID);
 						double coutTotalParCeVoisin = poidsLienVersVoisin + coutVoisinVersDest;
 						routeDest.ajouterOption(voisin.getId(), coutTotalParCeVoisin);
 					}
@@ -158,7 +201,7 @@ public class ReseauLogique {
 		if (source == null || dest == null)
 			return null;
 
-		Dijkstra dijkstra = new Dijkstra(Dijkstra.Element.EDGE, null, "poid");
+		Dijkstra dijkstra = new Dijkstra(Dijkstra.Element.EDGE, null, ATTR_POID);
 		dijkstra.init(this.graph);
 		dijkstra.setSource(source);
 		dijkstra.compute();
@@ -177,22 +220,38 @@ public class ReseauLogique {
 		for (String voisin : r.optionsVoisins.keySet()) {
 			Edge e = graph.getNode(idSource).getEdgeBetween(voisin);
 			if (e != null) {
-				e.setAttribute("ui.style", "fill-color: " + couleurs[i % couleurs.length] + "; width: 5px;");
+				e.setAttribute(ATTR_UI_STYLE, "fill-color: " + couleurs[i % couleurs.length] + "; size: 5px;");
 				i++;
 			}
 		}
 	}
 
 	public void colorierChemin(Path p) {
-		reinitialiserStyle();
-		if (p == null) return;
-		for (Edge e : p.getEdgePath())
-			e.setAttribute("ui.style", "fill-color: red; width: 4px;");
+		// Réinitialiser d'abord
+		for (Edge e : (Iterable<Edge>) graph.edges()::iterator)
+			e.removeAttribute(ATTR_UI_STYLE);
+		
+		if (p == null) {
+			return;
+		}
+		
+		// Appliquer le style directement
+		for (Edge e : p.getEdgePath()) {
+			e.setAttribute(ATTR_UI_STYLE, "fill-color: green; size: 4px;");
+		}
 	}
 
 	private void reinitialiserStyle() {
 		for (Edge e : (Iterable<Edge>) graph.edges()::iterator)
-			e.setAttribute("ui.style", "fill-color: gray; width: 1px;");
+			e.removeAttribute(ATTR_UI_STYLE);
+	}
+
+	private boolean isSwitch(Node n) {
+		return n != null && CLASS_SWITCH.equals(n.getAttribute(ATTR_UI_CLASS));
+	}
+
+	private boolean isMachine(Node n) {
+		return n != null && CLASS_MACHINE.equals(n.getAttribute(ATTR_UI_CLASS));
 	}
 	public static class Route {
 		public Map<String, Double> optionsVoisins;

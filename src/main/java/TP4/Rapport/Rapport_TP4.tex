@@ -1,0 +1,437 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{fancyhdr}
+\usepackage{array}
+\usepackage{tabularx}
+
+\geometry{margin=1in}
+
+\begin{document}
+
+\begin{titlepage}
+\centering
+\vspace*{1cm}
+
+\large
+\textbf{L3 INFORMATIQUE}
+
+\vspace{0.3cm}
+\normalsize
+2025--2026
+
+\vspace{2.5cm}
+
+\huge
+\textbf{Simulateur de\\Réseau}
+
+\vspace{0.8cm}
+
+\Large
+\textsc{Réseaux --- Le Routage}
+
+\vspace{1.5cm}
+
+\LARGE
+\textbf{Rapport du TP4}
+
+\vspace{3cm}
+
+\large
+\textbf{CONTRIBUTEURS DU PROJET}
+
+\normalsize
+Nathan ADOHO \quad Gr A
+
+\vspace{1.5cm}
+
+\normalsize
+Mise à jour : \today
+
+\vfill
+
+\end{titlepage}
+
+\newpage
+
+\tableofcontents
+\newpage
+
+\section{Rappel du sujet}
+
+Ce TP porte sur l'implantation d'un programme Java permettant de simuler un réseau de commutateurs et de calculer le chemin le plus court dans une topologie réseau donnée. Le programme doit répondre aux exigences suivantes :
+
+\begin{enumerate}
+    \item Permettre la saisie graphique du réseau (commutateurs, liens pondérés, machines terminales).
+    \item Permettre à l'utilisateur de sélectionner deux machines et de calculer l'ensemble des nœuds intermédiaires ainsi que les interfaces utilisées, via l'algorithme de Dijkstra.
+    \item Afficher le résultat sous forme graphique et textuelle.
+    \item Établir les tables de routage de chaque commutateur.
+\end{enumerate}
+
+L'axe technique principal est la mise en œuvre d'une architecture modulaire en Java : un modèle de graphe exploitant GraphStream, piloté par une interface graphique riche développée en Java Swing.
+
+\section{Analyse du sujet}
+
+\subsection{Décomposition du problème}
+
+Le sujet peut être décomposé en quatre grandes problématiques indépendantes mais reliées :
+
+\paragraph{Modélisation du réseau}
+Un réseau est un graphe pondéré non orienté. Les nœuds sont des commutateurs (switches) et des machines terminales. Les arêtes sont des liens pondérés entre commutateurs. Les machines terminales sont attachées aux commutateurs via des liaisons non pondérées (poids nul).
+
+\paragraph{Représentation graphique interactive}
+L'utilisateur doit pouvoir construire le réseau visuellement : ajouter/supprimer des commutateurs et des machines, créer des liens pondérés entre switches, charger une topologie depuis un fichier. La représentation doit être fidèle à la topologie réelle avec distinction visuelle claire entre switches et machines.
+
+\paragraph{Calcul de plus court chemin}
+L'algorithme de Dijkstra doit être appliqué entre deux machines quelconques. Le résultat doit être visualisé (coloration du chemin sur le graphe) et la distance totale affichée. Les tables de routage doivent être calculées pour chaque commutateur.
+
+\paragraph{Circuit logique}
+Pour une paire de machines donnée, il faut déterminer la séquence complète des commutateurs traversés, formant le circuit logique entre les deux terminaux.
+
+\subsection{Choix d'architecture}
+
+Une architecture modulaire en trois couches a été retenue : le modèle de graphe repose sur GraphStream (bibliothèque Java de manipulation et visualisation de graphes), l'interface graphique est développée en Java Swing, et un service d'interaction centralise la logique métier. Cette séparation respecte le patron MVC et facilite la maintenance.
+
+\section{Choix techniques effectués}
+
+\subsection{Architecture générale : patron MVC}
+
+Le projet suit une architecture Modèle-Vue-Contrôleur stricte, organisée en classes Java distinctes :
+\begin{itemize}
+    \item \texttt{TP4.ReseauLogique} : modèle du réseau, structure de graphe, algorithmes de routage.
+    \item \texttt{TP4.ItfResaux} : vue Swing, organisation en onglets, gestion des composants graphiques.
+    \item \texttt{TP4.ReseauInteractionService} : contrôleur, logique de traitement des événements utilisateur.
+    \item \texttt{TP4.App} : point d'entrée de l'application.
+\end{itemize}
+
+Cette séparation permet de maintenir une cohérence forte entre les responsabilités : le modèle ne connaît pas l'interface, la vue délègue toute logique métier, et le service orchestre les interactions.
+
+\subsection{Intégration GraphStream}
+
+\paragraph{Structures de données}
+GraphStream fournit une API de graphe complète avec gestion native des nœuds, arêtes, et attributs. Les principales structures utilisées sont :
+\begin{itemize}
+    \item \texttt{Graph} : conteneur principal du réseau.
+    \item \texttt{Node} : représente un commutateur ou une machine, avec attributs \texttt{ui.class}, \texttt{ui.label}, \texttt{ui.style}.
+    \item \texttt{Edge} : lien entre deux nœuds, avec attribut \texttt{poid} (poids du lien).
+\end{itemize}
+
+\paragraph{Algorithme de Dijkstra via GraphStream}
+L'implémentation utilise la classe \texttt{Dijkstra} fournie par GraphStream dans le package \texttt{org.graphstream.algorithm}. L'algorithme est exécuté depuis un nœud source avec la méthode \texttt{compute()}. La complexité est en $O((n + m) \log n)$ avec un tas de Fibonacci, adaptée aux graphes de taille moyenne.
+
+Les fonctions principales sont :
+\begin{itemize}
+    \item \texttt{dijkstra.compute()} : calcule les distances minimales depuis la source.
+    \item \texttt{dijkstra.getPath(destination)} : reconstruit le chemin optimal sous forme de \texttt{Path}.
+    \item \texttt{dijkstra.getPathLength(destination)} : retourne la distance totale.
+\end{itemize}
+
+\paragraph{Styles CSS pour le rendu}
+GraphStream exploite un système de styles CSS pour le rendu visuel. Les propriétés critiques utilisées sont :
+\begin{itemize}
+    \item \texttt{fill-color} : couleur de remplissage (nœuds, arêtes).
+    \item \texttt{stroke-mode} : mode de tracé (\texttt{plain}, \texttt{dashes}).
+    \item \texttt{size} : taille des arêtes (attention : pas \texttt{width}).
+    \item \texttt{text-background-mode} : fond du texte de label (\texttt{none}, \texttt{rounded-box}).
+\end{itemize}
+
+\textbf{Important} : GraphStream utilise des noms de propriétés spécifiques incompatibles avec le CSS web standard. Par exemple, \texttt{stroke-mode: dashes} (et non \texttt{dashed}), \texttt{size} (et non \texttt{width}).
+
+\subsection{Modèle Java : classe ReseauLogique}
+
+\paragraph{Responsabilités}
+\texttt{ReseauLogique} encapsule toute la logique du réseau :
+\begin{itemize}
+    \item Gestion du graphe GraphStream (\texttt{graph}).
+    \item Ajout/suppression de nœuds et de liens.
+    \item Application des styles visuels (switches en bleu, machines en orange, liaisons machine-switch en pointillés).
+    \item Calcul de plus court chemin avec Dijkstra.
+    \item Calcul de table de routage pour un switch donné.
+    \item Coloration du chemin calculé en vert.
+\end{itemize}
+
+\paragraph{Constantes métier}
+Des constantes sont définies pour garantir la cohérence :
+\begin{itemize}
+    \item \texttt{ATTR\_POID = "poid"} : nom de l'attribut de poids sur les arêtes.
+    \item \texttt{CLASS\_SWITCH = "switch"} : classe CSS des commutateurs.
+    \item \texttt{CLASS\_MACHINE = "machine"} : classe CSS des machines.
+\end{itemize}
+
+\paragraph{Méthodes principales}
+\begin{itemize}
+    \item \texttt{ajouterSwitch(String id)} : ajoute un commutateur avec style bleu.
+    \item \texttt{ajouterMachine(String id)} : ajoute une machine avec style orange.
+    \item \texttt{lierSwitchs(String idA, String idB, int poids)} : crée une arête pondérée.
+    \item \texttt{lierMachineSwitch(String idMachine, String idSwitch)} : liaison non pondérée en pointillés.
+    \item \texttt{plusCourtChemin(String source, String destination)} : retourne un \texttt{Path} ou \texttt{null}.
+    \item \texttt{colorierChemin(Path chemin)} : applique le style vert aux arêtes du chemin.
+    \item \texttt{tableRoutage(String idSwitch)} : calcule les routes optimales depuis le switch.
+\end{itemize}
+
+\paragraph{Helpers}
+\begin{itemize}
+    \item \texttt{isSwitch(Node n)} : teste si un nœud est un switch.
+    \item \texttt{isMachine(Node n)} : teste si un nœud est une machine.
+\end{itemize}
+
+\subsection{Service d'interaction : ReseauInteractionService}
+
+Cette classe centralise toute la logique d'interaction utilisateur, déchargeant ainsi l'interface graphique. Elle maintient une référence au modèle (\texttt{ReseauLogique}) et déclenche un callback de rafraîchissement après chaque mutation.
+
+\paragraph{Méthodes principales}
+\begin{itemize}
+    \item \texttt{ajouterSwitch()} : dialogue de saisie d'identifiant, appel au modèle, rafraîchissement.
+    \item \texttt{ajouterMachine()} : dialogue de saisie, ajout au modèle.
+    \item \texttt{lierDeuxSwitchs()} : sélection de deux switches, saisie du poids, création du lien.
+    \item \texttt{supprimerNoeud()} : sélection d'un nœud, suppression avec confirmation.
+    \item \texttt{afficherTableRoutage()} : sélection d'un switch, calcul de la table, affichage dans JTable.
+    \item \texttt{afficherCircuitLogique()} : sélection de deux machines, calcul du chemin, affichage textuel et coloration graphique.
+    \item \texttt{chargerFichier()} : ouverture d'un FileChooser, chargement d'un fichier DGS.
+\end{itemize}
+
+Le service utilise systématiquement \texttt{JOptionPane} pour les dialogues et \texttt{JTable}/\texttt{JScrollPane} pour les affichages tabulaires.
+
+\subsection{Interface graphique : ItfResaux}
+
+\paragraph{Organisation en onglets}
+L'interface est structurée avec un \texttt{JTabbedPane} contenant trois onglets :
+\begin{itemize}
+    \item \textbf{Fichier} : chargement de topologies DGS.
+    \item \textbf{Outils} : ajout de switches, machines, liaison, suppression.
+    \item \textbf{Analyse} : table de routage, circuit logique.
+\end{itemize}
+
+\paragraph{Composants principaux}
+\begin{itemize}
+    \item \texttt{Viewer} (GraphStream) : surface de rendu du graphe, intégrée dans un \texttt{JPanel}.
+    \item \texttt{JButton} : boutons d'action connectés aux méthodes du service.
+    \item \texttt{JComboBox} : sélecteurs de nœuds filtrés par type (switches ou machines).
+\end{itemize}
+
+\paragraph{Callback de rafraîchissement}
+Après chaque action métier, le service appelle \texttt{rafraichirInterfaceApresMutation()}, qui met à jour les listes déroulantes et force un repaint du viewer.
+
+\section{Résultats et tests}
+
+\subsection{Construction et manipulation du réseau}
+
+L'interface permet de créer un réseau de commutateurs et de machines depuis l'onglet Outils. Les switches et machines sont ajoutés via des dialogues de saisie. Les liaisons entre switches sont pondérées (saisie d'un poids entier positif). Les liaisons machine-switch sont automatiques avec poids nul et rendu en pointillés.
+
+\subsection{Calcul du plus court chemin (Dijkstra)}
+
+Le calcul est effectif entre deux machines quelconques depuis l'onglet Analyse. Le résultat s'affiche sous forme textuelle (liste ordonnée des commutateurs traversés) et graphiquement (arêtes colorées en vert). La visualisation est claire : le chemin est mis en évidence avec style distinct (\texttt{fill-color: green}, \texttt{size: 4px}).
+
+\paragraph{Test de cohérence}
+Sur un réseau à 4 commutateurs (S1, S2, S3, S4) avec topologie simple, le chemin calculé correspond au chemin optimal attendu. Par exemple, pour un réseau linéaire S1--S2--S3--S4 avec poids uniformes, le chemin de M1 (attachée à S1) vers M4 (attachée à S4) traverse S1, S2, S3, S4 avec distance totale égale à la somme des poids.
+
+\subsection{Table de routage}
+
+La table de routage s'affiche correctement pour chaque switch sélectionné. Le tableau comporte trois colonnes :
+\begin{itemize}
+    \item \textbf{Destination} : identifiant du nœud de destination.
+    \item \textbf{Via} : identifiant du prochain saut (voisin direct).
+    \item \textbf{Coût} : distance totale depuis le switch source.
+\end{itemize}
+
+\paragraph{Validation}
+Pour un réseau simple avec S1 relié à S2 (poids 10) et S2 relié à S3 (poids 5), la table de routage de S1 contient :
+\begin{itemize}
+    \item Destination = S2, Via = S2, Coût = 10
+    \item Destination = S3, Via = S2, Coût = 15
+\end{itemize}
+
+\subsection{Chargement de fichier DGS}
+
+Le chargement depuis un fichier DGS fonctionne correctement. Le graphe est reconstruit avec tous ses nœuds, arêtes, attributs et styles. Le viewer GraphStream affiche immédiatement la topologie chargée.
+
+\subsection{Contraintes métier}
+
+Les contraintes suivantes sont respectées :
+\begin{itemize}
+    \item Une machine ne peut pas être reliée directement à une autre machine.
+    \item Une machine est reliée à un seul switch.
+    \item Les liaisons machine-switch ont un poids nul et sont rendues en pointillés.
+\end{itemize}
+
+\section{Conclusion}
+
+\subsection{Bilan}
+
+Ce projet a permis de mettre en œuvre un simulateur de réseau complet répondant à toutes les exigences du sujet. L'architecture MVC appliquée côté Java rend le code modulaire et facilement extensible. Le patron de séparation entre modèle, vue et service garantit une maintenance aisée et une évolution progressive des fonctionnalités.
+
+Les fonctionnalités implémentées couvrent l'intégralité des points obligatoires (saisie graphique, Dijkstra, tables de routage) ainsi que des extensions utiles (machines terminales, circuit logique, chargement de fichiers DGS).
+
+\subsection{Difficultés rencontrées}
+
+\paragraph{Propriétés CSS GraphStream}
+GraphStream utilise un système de propriétés CSS spécifique, incompatible avec le CSS web standard. Les erreurs fréquentes incluent :
+\begin{itemize}
+    \item Utilisation de \texttt{width} au lieu de \texttt{size} pour les arêtes.
+    \item Utilisation de \texttt{stroke-mode: dashed} au lieu de \texttt{stroke-mode: dashes}.
+    \item Valeurs invalides pour \texttt{text-background-mode}.
+\end{itemize}
+
+La documentation GraphStream est parfois imprécise, nécessitant des tests empiriques pour valider les styles.
+
+\paragraph{Gestion des ports de switch}
+La gestion manuelle des numéros de port sur chaque switch s'est révélée complexe dans le cadre de cette interface graphique. Un mécanisme d'auto-incrémentation implicite a été retenu comme compromis pragmatique. L'exposition explicite des ports dans l'interface (numérotation visible, configuration manuelle) constitue une amélioration possible pour une version ultérieure.
+
+\paragraph{Dette technique initiale}
+La classe d'interface initiale (\texttt{ItfResaux}) contenait plus de 500 lignes, mélangeant logique d'affichage et logique métier. La refactorisation avec extraction de \texttt{ReseauInteractionService} a permis de réduire cette taille à environ 200 lignes, améliorant significativement la lisibilité et la testabilité.
+
+\subsection{Perspectives}
+
+\begin{itemize}
+    \item \textbf{Export et sauvegarde} : ajout d'une fonctionnalité d'export au format DGS pour persister les topologies créées.
+    \item \textbf{Undo/Redo} : implémentation d'un historique d'actions avec possibilité d'annulation.
+    \item \textbf{Configuration manuelle des ports} : interface dédiée à la gestion fine des numéros de port sur chaque switch.
+    \item \textbf{Tests unitaires} : couverture du modèle avec JUnit pour garantir la robustesse des algorithmes.
+    \item \textbf{Simulation de panne} : ajout d'un mécanisme de désactivation temporaire de switches pour tester la résilience du routage.
+\end{itemize}
+
+\newpage
+
+\appendix
+
+\section*{ANNEXE}
+\addcontentsline{toc}{section}{Annexe : Mode d'emploi}
+
+\begin{center}
+\Large
+\textbf{MODE D'EMPLOI DE L'INTERFACE}
+
+\normalsize
+Guide complet d'utilisation du simulateur\\de réseau avec routage et circuit logique.
+
+\vspace{0.5cm}
+\small
+Simulateur de routage --- L3 Informatique 2025--2026
+\end{center}
+
+\vspace{1cm}
+
+\subsection*{A.1 --- Vue générale de l'application}
+
+L'interface principale est organisée en onglets regroupant les fonctionnalités par thème :
+\begin{itemize}
+    \item \textbf{Onglet Fichier} : chargement de topologies depuis des fichiers DGS.
+    \item \textbf{Onglet Outils} : construction et modification du réseau (ajout de switches, machines, liaisons, suppressions).
+    \item \textbf{Onglet Analyse} : calcul de table de routage et affichage du circuit logique entre deux machines.
+\end{itemize}
+
+Le graphe est affiché dans une surface de visualisation centrale (viewer GraphStream) où les nœuds et arêtes sont rendus en temps réel.
+
+\subsection*{A.2 --- Construction du réseau}
+
+\paragraph{Ajouter un commutateur}
+\begin{enumerate}
+    \item Se placer dans l'onglet \textbf{Outils}.
+    \item Cliquer sur le bouton \textbf{Ajouter Switch}.
+    \item Saisir un identifiant unique dans la boîte de dialogue (ex: \texttt{S1}).
+    \item Valider : le switch apparaît dans le graphe avec un rendu bleu circulaire.
+\end{enumerate}
+
+\paragraph{Ajouter une machine}
+\begin{enumerate}
+    \item Dans l'onglet \textbf{Outils}, cliquer sur \textbf{Ajouter Machine}.
+    \item Saisir un identifiant unique (ex: \texttt{M1}).
+    \item Saisir l'identifiant du switch auquel rattacher la machine.
+    \item Valider : la machine apparaît en orange rectangulaire, reliée au switch par une liaison en pointillés.
+\end{enumerate}
+
+\paragraph{Relier deux commutateurs}
+\begin{enumerate}
+    \item Cliquer sur \textbf{Lier deux Switchs}.
+    \item Saisir l'identifiant du premier switch (ex: \texttt{S1}).
+    \item Saisir l'identifiant du second switch (ex: \texttt{S2}).
+    \item Saisir le poids du lien (entier positif, ex: \texttt{10}).
+    \item Valider : un lien plein est tracé entre les deux switches avec le poids affiché.
+\end{enumerate}
+
+\paragraph{Supprimer un nœud}
+\begin{enumerate}
+    \item Cliquer sur \textbf{Supprimer Noeud}.
+    \item Saisir l'identifiant du nœud à supprimer (switch ou machine).
+    \item Confirmer : le nœud et toutes ses arêtes sont supprimés du graphe.
+\end{enumerate}
+
+\subsection*{A.3 --- Chargement d'une topologie}
+
+\begin{enumerate}
+    \item Se placer dans l'onglet \textbf{Fichier}.
+    \item Cliquer sur \textbf{Charger fichier DGS}.
+    \item Sélectionner un fichier \texttt{.dgs} valide dans l'explorateur.
+    \item Le graphe est reconstruit automatiquement avec tous les nœuds, arêtes et attributs.
+\end{enumerate}
+
+\textbf{Note} : le format DGS est un format texte décrivant un graphe (nœuds, arêtes, attributs). GraphStream le supporte nativement.
+
+\subsection*{A.4 --- Calcul de la table de routage}
+
+\begin{enumerate}
+    \item Se placer dans l'onglet \textbf{Analyse}.
+    \item Cliquer sur \textbf{Table de Routage}.
+    \item Sélectionner un switch dans la liste déroulante.
+    \item Valider : une fenêtre s'ouvre affichant un tableau avec trois colonnes : \textbf{Destination}, \textbf{Via}, \textbf{Coût}.
+\end{enumerate}
+
+Le tableau liste toutes les destinations accessibles depuis le switch sélectionné, avec le prochain saut optimal et la distance totale.
+
+\subsection*{A.5 --- Affichage du circuit logique}
+
+Le circuit logique représente le chemin complet entre deux machines, sous forme textuelle et graphique.
+
+\begin{enumerate}
+    \item Dans l'onglet \textbf{Analyse}, cliquer sur \textbf{Circuit Logique}.
+    \item Sélectionner la machine source dans la première liste déroulante.
+    \item Sélectionner la machine destination dans la seconde liste déroulante.
+    \item Valider : 
+    \begin{itemize}
+        \item Le chemin est affiché dans une boîte de dialogue (liste ordonnée des commutateurs traversés).
+        \item Le chemin est coloré en \textbf{vert} sur le graphe pour identification visuelle immédiate.
+    \end{itemize}
+\end{enumerate}
+
+Si aucun chemin n'existe (réseau déconnecté), un message d'erreur est affiché.
+
+\subsection*{A.6 --- Lecture du graphe affiché}
+
+\paragraph{Représentation visuelle}
+\begin{itemize}
+    \item \textbf{Commutateurs} : cercles de couleur \textbf{bleue}.
+    \item \textbf{Machines} : rectangles de couleur \textbf{orange}.
+    \item \textbf{Liens entre switches} : lignes pleines avec poids affiché (étiquette).
+    \item \textbf{Liens machine-switch} : lignes en \textbf{pointillés} sans poids.
+    \item \textbf{Chemin calculé} : arêtes en \textbf{vert épais} après calcul de circuit logique.
+\end{itemize}
+
+\paragraph{Interprétation}
+La topologie affichée reflète exactement l'état du modèle internal. Chaque mutation (ajout, suppression, liaison) est immédiatement visible dans le viewer.
+
+\subsection*{A.7 --- Compilation et exécution}
+
+\paragraph{Compiler le projet}
+Depuis la racine du projet (où se trouve \texttt{pom.xml}), exécuter :
+\begin{verbatim}
+mvn clean compile
+\end{verbatim}
+
+\paragraph{Exécuter l'application}
+Depuis la racine du projet :
+\begin{verbatim}
+mvn exec:java -Dexec.mainClass="TP4.App"
+\end{verbatim}
+
+Ou bien, si les classes sont déjà compilées :
+\begin{verbatim}
+java -cp target/classes TP4.App
+\end{verbatim}
+
+\end{document}
